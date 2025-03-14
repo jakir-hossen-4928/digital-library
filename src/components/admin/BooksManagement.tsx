@@ -29,6 +29,7 @@ const BooksManagement = () => {
   const { toast } = useToast();
   const textareaRef = useRef(null);
   const modalRef = useRef(null);
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const IMGBB_API_KEY = import.meta.env.VITE_IMGBB_API_KEY;
   const OPENROUTER_API_KEY = import.meta.env.VITE_MYSCHOOL_AI_API;
@@ -57,8 +58,8 @@ const BooksManagement = () => {
     try {
       setLoading(true);
       const [booksResponse, authorsResponse] = await Promise.all([
-        axios.get('http://localhost:5000/admin/books'),
-        axios.get('http://localhost:5000/admin/authors'),
+        axios.get(`${backendUrl}/admin/books`),
+        axios.get(`${backendUrl}/admin/authors`),
       ]);
 
       // Sort books by id in descending order (last added first)
@@ -81,31 +82,61 @@ const BooksManagement = () => {
       toast({ title: 'Error', description: 'Please enter content to enhance.', variant: 'destructive' });
       return;
     }
+
     try {
       setAiLoading(true);
 
-      // First update to show processing
+      // Show processing message
       setFormData(prev => ({
         ...prev,
         content: prev.content + "\n\n[AI Enhancement in progress...]"
       }));
       adjustTextareaHeight();
 
+      const OPENROUTER_API_KEY = import.meta.env.VITE_AI_API;
+      const AI_MODEL = import.meta.env.VITE_AI_MODEL;
+
+      // Detect Bangla input
+      const isBangla = /[\u0980-\u09FF]/.test(formData.content);
+      const languageInstruction = isBangla
+        ? "Respond in Bangla (বাংলা) only."
+        : "Respond in the same language as the input.";
+
+      // Log request start for debugging
+      console.log('Sending request to OpenRouter API...');
+
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'http://localhost:5000',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': import.meta.env.VITE_BACKEND_URL || 'https://e-book-web-server-two.vercel.app',
           'X-Title': 'E-Book Reader',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'qwen/qwq-32b-preview:free',
-          messages: [{ role: 'user', content: `Enhance this content: ${formData.content.replace("[AI Enhancement in progress...]", "")}` }],
+          model: AI_MODEL || 'google/gemma-3-4b-it:free',
+          messages: [
+            {
+              role: 'user',
+              content: `${languageInstruction} Please enhance the following content by improving its clarity, structure, and richness while preserving the original meaning: ${formData.content.replace("[AI Enhancement in progress...]", "")}`
+            }
+          ],
+          max_tokens: 1500,
+          temperature: 0.7,
         }),
+        signal: AbortSignal.timeout(60000), // Increased to 60 seconds
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+      }
+
       const data = await response.json();
+      if (!data.choices || !data.choices[0]?.message?.content) {
+        throw new Error('Invalid response from AI API: No content returned');
+      }
+
       const enhancedContent = data.choices[0].message.content;
 
       setFormData(prev => ({
@@ -119,14 +150,29 @@ const BooksManagement = () => {
         description: 'Content has been improved and enriched!',
         variant: 'success'
       });
-      setAiLoading(false);
     } catch (err) {
-      setError('Error enhancing content with AI');
+      console.error('AI Enhancement Error:', err);
+      let errorMessage = 'Unknown error occurred';
+      if (err.name === 'AbortError') {
+        errorMessage = 'Request timed out after 60 seconds. The server may be slow or your input may be too large. Please try again or shorten the content.';
+      } else if (err.message.includes('Failed to fetch')) {
+        errorMessage = 'Network error: Could not connect to the AI server. Check your internet or firewall settings.';
+      } else {
+        errorMessage = err.message;
+      }
+
+      setError(`Error enhancing content with AI: ${errorMessage}`);
       setFormData(prev => ({
         ...prev,
-        content: prev.content.replace("[AI Enhancement in progress...]", "\n\n[AI Enhancement failed]")
+        content: prev.content.replace("[AI Enhancement in progress...]", "\n\n[AI Enhancement failed: ${errorMessage}]")
       }));
       adjustTextareaHeight();
+      toast({
+        title: 'Enhancement Failed',
+        description: `Could not enhance content: ${errorMessage}`,
+        variant: 'destructive'
+      });
+    } finally {
       setAiLoading(false);
     }
   };
@@ -197,7 +243,7 @@ const BooksManagement = () => {
       const dataToSend = { ...formData, coverImageUrl };
 
       if (isEditing) {
-        const response = await axios.put(`http://localhost:5000/admin/books/${formData.id}`, dataToSend, config);
+        const response = await axios.put(`${backendUrl}/admin/books/${formData.id}`, dataToSend, config);
         setBooks(books.map((book) => (book.id === formData.id ? response.data.book : book)));
         toast({
           title: 'Book Updated',
@@ -205,7 +251,7 @@ const BooksManagement = () => {
           variant: 'success'
         });
       } else {
-        const response = await axios.post('http://localhost:5000/admin/books', dataToSend, config);
+        const response = await axios.post(`${backendUrl}/admin/books`, dataToSend, config);
         setBooks([response.data.book, ...books]);
         toast({
           title: 'Book Added',
@@ -233,7 +279,7 @@ const BooksManagement = () => {
 
     try {
       setLoading(true);
-      await axios.delete(`http://localhost:5000/admin/books/${bookToDelete.id}`, {
+      await axios.delete(`${backendUrl}/admin/books/${bookToDelete.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setBooks(books.filter((book) => book.id !== bookToDelete.id));

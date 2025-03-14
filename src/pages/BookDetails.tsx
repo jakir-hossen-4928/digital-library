@@ -70,16 +70,16 @@ const BookDetails = () => {
         <div className="max-w-4xl mx-auto">
           <BookHeader book={book} />
           <div className="flex flex-col md:flex-row gap-8 mb-6">
-            <div className="w-full md:w-1/3 lg:w-1/4">
+            {/* <div className="w-full md:w-1/3 lg:w-1/4">
               <div className="sticky top-8">
                 <img
                   src={book.coverImageUrl}
                   alt={book.title}
                   className="w-full rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300"
                 />
-                {/* Note: No description field from server; omitted or add if needed */}
+
               </div>
-            </div>
+            </div> */}
             <div className="w-full md:w-2/3 lg:w-3/4">
               <ReadingSettings
                 fontSize={fontSize}
