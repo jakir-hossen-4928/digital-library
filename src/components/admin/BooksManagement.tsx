@@ -204,6 +204,8 @@ const BooksManagement = () => {
     }
   };
 
+
+
   const uploadImageToImgBB = async () => {
     if (!imageFile) return formData.coverImageUrl;
     setUploadingImage(true);
@@ -229,34 +231,58 @@ const BooksManagement = () => {
       setError('No authentication token available. Please log in.');
       return;
     }
+
+    // Validate all fields before proceeding
+    if (!formData.title || !formData.author || !formData.content || (!imageFile && !formData.coverImageUrl)) {
+      setError('All fields (title, author, content, and cover image) are required.');
+      toast({
+        title: 'Error',
+        description: 'Please fill in all required fields.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
-      // Only upload a new image if there's a file
+      // Upload image (required for new books or if editing with a new image)
       let coverImageUrl = formData.coverImageUrl;
       if (imageFile) {
         coverImageUrl = await uploadImageToImgBB();
-        if (!coverImageUrl) throw new Error('Image upload failed');
+        if (!coverImageUrl) {
+          throw new Error('Image upload failed');
+        }
+      } else if (!isEditing && !formData.coverImageUrl) {
+        throw new Error('Cover image is required for new books.');
       }
 
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const dataToSend = { ...formData, coverImageUrl };
+      const dataToSend = {
+        title: formData.title,
+        author: formData.author,
+        content: formData.content,
+        coverImageUrl: coverImageUrl,
+      };
 
+      console.log('Sending data to server:', dataToSend); // Debug payload
+
+      let response;
       if (isEditing) {
-        const response = await axios.put(`${backendUrl}/admin/books/${formData.id}`, dataToSend, config);
+        response = await axios.put(`${backendUrl}/admin/books/${formData.id}`, dataToSend, config);
         setBooks(books.map((book) => (book.id === formData.id ? response.data.book : book)));
         toast({
           title: 'Book Updated',
           description: `"${formData.title}" has been successfully updated!`,
-          variant: 'success'
+          variant: 'success',
         });
       } else {
-        const response = await axios.post(`${backendUrl}/admin/books`, dataToSend, config);
+        response = await axios.post(`${backendUrl}/admin/books`, dataToSend, config);
         setBooks([response.data.book, ...books]);
         toast({
           title: 'Book Added',
           description: `"${formData.title}" has been successfully added to your library!`,
-          variant: 'success'
+          variant: 'success',
         });
       }
 
@@ -264,8 +290,16 @@ const BooksManagement = () => {
       setIsModalOpen(false);
       setLoading(false);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error saving book');
+      const errorMessage = err.response?.data?.error || 'Error saving book';
+      const errorDetails = err.response?.data?.details || err.message;
+      setError(`${errorMessage}${errorDetails ? `: ${errorDetails}` : ''}`);
+      console.error('Submit Error:', err.response || err);
       setLoading(false);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
   };
 
