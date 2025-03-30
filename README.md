@@ -42,7 +42,7 @@ Welcome to the Digital Library platform! This web application allows users to ex
 
 ## 🛠️ Technologies Used
 
-- **React.js**: Frontend library for building user interfaces.
+- **Vite-React**: Frontend library for building user interfaces.
 - **Framer Motion**: Animation library for React.
 - **Axios**: Promise-based HTTP client for making API requests.
 - **Tailwind CSS**: Utility-first CSS framework for styling.
