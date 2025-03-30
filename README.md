@@ -1,8 +1,4 @@
 
-Here’s a possible GitHub README file content based on the features from the provided code, using emojis to make it more engaging:
-
----
-
 # 📚 Digital Library Platform
 
 Welcome to the Digital Library platform! This web application allows users to explore a collection of books, search for specific titles and authors, and view author profiles along with their books. The admin panel provides insights into the total number of books, authors, and a breakdown of books by each author.
@@ -43,29 +39,6 @@ Welcome to the Digital Library platform! This web application allows users to ex
 - **React** (v18 or above)
 - **Axios** (for data fetching)
 
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/digital-library.git
-
-# Change directory to the project folder
-cd digital-library
-
-# Install dependencies
-npm install
-
-# Run the development server
-npm start
-```
-
-### Backend Setup
-Make sure to set the correct backend URL in the `.env` file:
-```env
-VITE_BACKEND_URL=your-backend-url-here
-```
-
----
 
 ## 🛠️ Technologies Used
 
@@ -77,16 +50,6 @@ VITE_BACKEND_URL=your-backend-url-here
 
 ---
 
-## 🎨 Contributing
 
-We welcome contributions! Feel free to open an issue or submit a pull request.
-
----
-
-## 🧑‍💻 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
 
 Happy coding! 😄
